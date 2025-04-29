@@ -1,0 +1,162 @@
+<dependencies>
+    <!-- Kafka Clients -->
+    <dependency>
+        <groupId>org.apache.kafka</groupId>
+        <artifactId>kafka-clients</artifactId>
+        <version>3.6.0</version> <!-- Use latest compatible version -->
+    </dependency>
+
+    <!-- JUnit for testing -->
+    <dependency>
+        <groupId>org.junit.jupiter</groupId>
+        <artifactId>junit-jupiter</artifactId>
+        <version>5.9.3</version>
+        <scope>test</scope>
+    </dependency>
+</dependencies>
+
+
+import org.apache.kafka.clients.consumer.*;
+import org.apache.kafka.clients.producer.*;
+import org.apache.kafka.common.serialization.StringDeserializer;
+import org.apache.kafka.common.serialization.StringSerializer;
+import org.junit.jupiter.api.*;
+
+import java.time.Duration;
+import java.util.*;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+public class KafkaAutomationTest {
+
+    private static final String BOOTSTRAP_SERVERS = "localhost:9092";
+    private static final String TOPIC = "test-topic";
+
+    @Test
+    public void testKafkaProduceAndConsume() {
+        String testKey = "testKey";
+        String testValue = "Hello Kafka!";
+
+        // Produce message
+        Properties producerProps = new Properties();
+        producerProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, BOOTSTRAP_SERVERS);
+        producerProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+        producerProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+
+        try (Producer<String, String> producer = new KafkaProducer<>(producerProps)) {
+            ProducerRecord<String, String> record = new ProducerRecord<>(TOPIC, testKey, testValue);
+            producer.send(record);
+            producer.flush();
+        }
+
+        // Consume message
+        Properties consumerProps = new Properties();
+        consumerProps.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, BOOTSTRAP_SERVERS);
+        consumerProps.put(ConsumerConfig.GROUP_ID_CONFIG, "test-group");
+        consumerProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+        consumerProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+        consumerProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        consumerProps.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
+
+        try (KafkaConsumer<String, String> consumer = new KafkaConsumer<>(consumerProps)) {
+            consumer.subscribe(Collections.singletonList(TOPIC));
+
+            boolean messageFound = false;
+            long timeout = System.currentTimeMillis() + 10000;
+
+            while (!messageFound && System.currentTimeMillis() < timeout) {
+                ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(500));
+                for (ConsumerRecord<String, String> record : records) {
+                    if (record.key().equals(testKey) && record.value().equals(testValue)) {
+                        messageFound = true;
+                        assertEquals(testValue, record.value());
+                        break;
+                    }
+                }
+            }
+
+            Assertions.assertTrue(messageFound, "Expected message not found in Kafka topic");
+        }
+    }
+}
+
+<dependencies>
+    <!-- Spring Boot Kafka -->
+    <dependency>
+        <groupId>org.springframework.kafka</groupId>
+        <artifactId>spring-kafka</artifactId>
+    </dependency>
+
+    <!-- Spring Kafka Test (for Embedded Kafka) -->
+    <dependency>
+        <groupId>org.springframework.kafka</groupId>
+        <artifactId>spring-kafka-test</artifactId>
+        <scope>test</scope>
+    </dependency>
+
+    <!-- JUnit 5 -->
+    <dependency>
+        <groupId>org.junit.jupiter</groupId>
+        <artifactId>junit-jupiter</artifactId>
+        <scope>test</scope>
+    </dependency>
+</dependencies>
+
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.serialization.StringDeserializer;
+import org.apache.kafka.common.serialization.StringSerializer;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.test.context.EmbeddedKafka;
+import org.springframework.kafka.test.utils.KafkaTestUtils;
+import org.springframework.test.context.TestPropertySource;
+
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+@SpringBootTest
+@EmbeddedKafka(partitions = 1, topics = { "test-topic" }, brokerProperties = { "listeners=PLAINTEXT://localhost:9092", "port=9092" })
+@TestPropertySource(properties = {
+        "spring.kafka.bootstrap-servers=${spring.embedded.kafka.brokers}"
+})
+public class EmbeddedKafkaTest {
+
+    @Autowired
+    private KafkaTemplate<String, String> kafkaTemplate;
+
+    private static BlockingQueue<ConsumerRecord<String, String>> records = new LinkedBlockingQueue<>();
+
+    @KafkaListener(topics = "test-topic", groupId = "test-group")
+    public void listen(ConsumerRecord<String, String> record) {
+        records.add(record);
+    }
+
+    @Test
+    public void testSendAndReceive() throws InterruptedException {
+        String key = "test-key";
+        String value = "Hello Embedded Kafka";
+
+        kafkaTemplate.send(new ProducerRecord<>("test-topic", key, value));
+        kafkaTemplate.flush();
+
+        ConsumerRecord<String, String> received = records.poll(5, TimeUnit.SECONDS);
+        assertNotNull(received, "No message received");
+        assertEquals(key, received.key());
+        assertEquals(value, received.value());
+    }
+}
+
+
+
+
+
+
+
+
