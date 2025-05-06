@@ -1,0 +1,42 @@
+#!/bin/bash
+
+#=== Configuration ===#
+COMMAND="whoami"                   # Change to the command you want to run
+PB_COMMAND="pbrun $COMMAND"        # Use pbexec or pbrun as needed
+PASS_FILE="/tmp/.pbpass.$$"        # Temporary password file (auto-deleted)
+EXPECT_SCRIPT="/tmp/.pbrun_expect.$$"
+USER=$(whoami)
+
+#=== Check if pbrun works without password ===#
+if $PB_COMMAND >/tmp/pb_output.$$ 2>&1; then
+    echo "[OK] $PB_COMMAND ran successfully without password."
+    cat /tmp/pb_output.$$
+    rm -f /tmp/pb_output.$$
+    exit 0
+fi
+
+echo "[INFO] Password is required for PowerBroker."
+
+#=== Prompt for password ===#
+read -s -p "Enter PowerBroker password for $USER: " PB_PASS
+echo
+
+#=== Write temporary expect script ===#
+cat <<EOF > "$EXPECT_SCRIPT"
+#!/usr/bin/expect -f
+set timeout -1
+set password "$PB_PASS"
+spawn $PB_COMMAND
+expect "Password:"
+send "\$password\r"
+expect eof
+EOF
+
+chmod 700 "$EXPECT_SCRIPT"
+
+#=== Run the expect script ===#
+"$EXPECT_SCRIPT"
+
+#=== Cleanup ===#
+rm -f "$EXPECT_SCRIPT"
+unset PB_PASS
