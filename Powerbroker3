@@ -1,0 +1,60 @@
+import com.jcraft.jsch.*;
+
+import java.io.InputStream;
+
+public class RemoteExecutor {
+    public static void main(String[] args) {
+        String host = "your.host.com";
+        String user = "youruser";
+        String password = "your_ssh_password"; // SSH password
+        String scriptPath = "/home/youruser/pbexec_with_password.sh";
+        String nextCommand = "ls -l /tmp";
+
+        try {
+            JSch jsch = new JSch();
+            Session session = jsch.getSession(user, host, 22);
+            session.setPassword(password);
+            session.setConfig("StrictHostKeyChecking", "no");
+            session.connect();
+
+            // Step 1: Run the expect shell script
+            System.out.println("Running pbexec script...");
+            String scriptOutput = runRemoteCommand(session, scriptPath);
+            System.out.println("Script Output:\n" + scriptOutput);
+
+            // Step 2: Run next Linux command
+            System.out.println("Running follow-up command...");
+            String cmdOutput = runRemoteCommand(session, nextCommand);
+            System.out.println("Command Output:\n" + cmdOutput);
+
+            session.disconnect();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static String runRemoteCommand(Session session, String command) throws Exception {
+        ChannelExec channel = (ChannelExec) session.openChannel("exec");
+        channel.setCommand(command);
+        channel.setPty(true);
+        InputStream in = channel.getInputStream();
+        channel.connect();
+
+        StringBuilder output = new StringBuilder();
+        byte[] tmp = new byte[1024];
+        while (true) {
+            while (in.available() > 0) {
+                int i = in.read(tmp, 0, 1024);
+                if (i < 0) break;
+                output.append(new String(tmp, 0, i));
+            }
+            if (channel.isClosed()) {
+                break;
+            }
+            Thread.sleep(200);
+        }
+        channel.disconnect();
+        return output.toString();
+    }
+}
