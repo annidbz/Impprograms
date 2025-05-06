@@ -1,0 +1,48 @@
+import com.pty4j.PtyProcess;
+import com.pty4j.PtyProcessBuilder;
+
+import java.io.*;
+
+public class PowerBrokerPtyRunner {
+    public static void main(String[] args) {
+        String command = "pbrun whoami";
+        String pbPassword = "your_powerbroker_password";
+
+        try {
+            PtyProcessBuilder builder = new PtyProcessBuilder(new String[] {"/bin/bash", "-c", command});
+            builder.setEnvironment(System.getenv());
+            PtyProcess process = builder.start();
+
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(process.getOutputStream()));
+
+            String line;
+            boolean passwordPrompted = false;
+
+            while ((line = reader.readLine()) != null) {
+                System.out.println(line);
+                if (!passwordPrompted && line.toLowerCase().contains("password")) {
+                    writer.write(pbPassword);
+                    writer.newLine();
+                    writer.flush();
+                    passwordPrompted = true;
+                }
+            }
+
+            process.waitFor();
+            process.destroy();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+
+<dependency>
+  <groupId>com.pty4j</groupId>
+  <artifactId>pty4j</artifactId>
+  <version>0.9.6</version>
+</dependency>
+
+
