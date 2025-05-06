@@ -1,0 +1,57 @@
+#!/usr/bin/expect -f
+set timeout -1
+set password "your_pbexec_password"
+spawn pbexec whoami
+expect "Password:"
+send "$password\r"
+expect eof
+
+chmod +x /path/to/pbexec_with_password.sh
+
+
+import com.jcraft.jsch.*;
+
+import java.io.InputStream;
+
+public class JSchWithExpectScript {
+    public static void main(String[] args) {
+        String host = "your.server.com";
+        String user = "your_ssh_user";
+        String password = "your_ssh_password";  // SSH password, not pbexec password
+        String scriptPath = "/path/to/pbexec_with_password.sh";
+
+        try {
+            JSch jsch = new JSch();
+            Session session = jsch.getSession(user, host, 22);
+            session.setPassword(password);
+            session.setConfig("StrictHostKeyChecking", "no");
+            session.connect();
+
+            ChannelExec channel = (ChannelExec) session.openChannel("exec");
+            channel.setCommand(scriptPath);
+            channel.setPty(true);  // Required for pbexec
+            InputStream in = channel.getInputStream();
+
+            channel.connect();
+
+            byte[] tmp = new byte[1024];
+            while (true) {
+                while (in.available() > 0) {
+                    int i = in.read(tmp, 0, 1024);
+                    if (i < 0) break;
+                    System.out.print(new String(tmp, 0, i));
+                }
+                if (channel.isClosed()) {
+                    System.out.println("Exit status: " + channel.getExitStatus());
+                    break;
+                }
+                Thread.sleep(500);
+            }
+
+            channel.disconnect();
+            session.disconnect();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
