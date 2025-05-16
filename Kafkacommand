@@ -6,3 +6,6 @@
 
 
 & '.\bin\windows\kafka-topics.bat' --create --topic test --bootstrap-server localhost:19092
+
+java -cp "C:\kafka\libs\*" kafka.tools.KafkaTopicCommand --create --topic test --bootstrap-server localhost:19092
+
