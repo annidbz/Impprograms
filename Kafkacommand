@@ -1,0 +1,1 @@
+.\bin\windows\kafka-topics.bat --create --topic test --bootstrap-server localhost:19092
