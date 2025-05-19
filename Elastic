@@ -1,0 +1,118 @@
+To set up Elasticsearch, Logstash, and Kibana (ELK Stack) using Docker Compose, you can define all services in a docker-compose.yml file.
+
+Below is a basic example that spins up:
+	•	Elasticsearch: for storing and searching logs/data
+	•	Logstash: for processing input logs and shipping them to Elasticsearch
+	•	Kibana: for visualizing data from Elasticsearch
+version: '3.7'
+
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.2
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - xpack.security.transport.ssl.enabled=false
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    mem_limit: 1g
+    ports:
+      - "9200:9200"
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.13.2
+    container_name: logstash
+    volumes:
+      - ./logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+    depends_on:
+      - elasticsearch
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.13.2
+    container_name: kibana
+    ports:
+      - "5601:5601"
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    depends_on:
+      - elasticsearch
+
+volumes:
+  esdata:
+
+
+input {
+  stdin {}
+}
+
+output {
+  elasticsearch {
+    hosts => ["http://elasticsearch:9200"]
+    index => "logstash-test"
+  }
+  stdout { codec => rubydebug }
+}
+
+version: '3.7'
+
+services:
+  elasticsearch:
+    image: elasticsearch:8.13.2
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - xpack.security.transport.ssl.enabled=false
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    mem_limit: 1g
+    ports:
+      - "9200:9200"
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+
+  logstash:
+    image: logstash:8.13.2
+    container_name: logstash
+    volumes:
+      - ./logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+    depends_on:
+      - elasticsearch
+
+  kibana:
+    image: kibana:8.13.2
+    container_name: kibana
+    ports:
+      - "5601:5601"
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    depends_on:
+      - elasticsearch
+
+volumes:
+  esdata:
+
+
+# Extract and load Elasticsearch
+docker load -i (tar -xOzf .\elasticsearch.tar.gz)
+
+# OR more commonly:
+tar -xzf .\elasticsearch.tar.gz
+docker load -i .\elasticsearch.tar  # if a .tar file appears after extraction
+
+# Extract and load Elasticsearch
+docker load -i (tar -xOzf .\elasticsearch.tar.gz)
+
+# OR more commonly:
+tar -xzf .\elasticsearch.tar.gz
+docker load -i .\elasticsearch.tar  # if a .tar file appears after extraction
+
+
+
