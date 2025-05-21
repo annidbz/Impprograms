@@ -1,0 +1,40 @@
+cluster.name: docker-cluster
+network.host: 0.0.0.0
+http.port: 9200
+discovery.type: single-node
+xpack.security.enabled: false
+
+server.name: kibana
+server.host: "0.0.0.0"
+elasticsearch.hosts: [ "http://elasticsearch:9200" ]
+xpack.security.enabled: false
+telemetry.enabled: false
+
+
+input {
+  kafka {
+    bootstrap_servers => "localhost:19092"
+    topics => ["test-topic"]
+    group_id => "logstash-group"
+    codec => plain {
+      charset => "UTF-8"
+    }
+  }
+}
+
+filter {
+  grok {
+    match => { "message" => "msg-value-%{NUMBER:msg_value}" }
+  }
+  mutate {
+    convert => { "msg_value" => "integer" }
+  }
+}
+
+output {
+  elasticsearch {
+    hosts => ["http://elasticsearch:9200"]
+    index => "kafka-logs-%{+YYYY.MM.dd}"
+  }
+  stdout { codec => rubydebug }
+}
