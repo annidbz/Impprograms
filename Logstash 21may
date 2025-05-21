@@ -1,0 +1,21 @@
+FROM debian:bullseye-slim
+
+# Hardcoded Nexus URL to the Logstash tar.gz
+ENV LOGSTASH_URL=https://nexus.example.com/repository/logstash/logstash-8.13.0-linux-x86_64.tar.gz
+
+# Install required packages and download Logstash
+RUN apt-get update && apt-get install -y curl tar gzip openjdk-17-jdk \
+    && mkdir -p /opt/logstash \
+    && curl -L ${LOGSTASH_URL} | tar xz --strip-components=1 -C /opt/logstash \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set environment and working directory
+ENV PATH="/opt/logstash/bin:${PATH}"
+WORKDIR /opt/logstash
+
+# Optional: Copy your custom config and pipeline
+COPY logstash.yml config/logstash.yml
+COPY pipeline/ pipeline/
+
+# Default command to run Logstash
+CMD ["logstash", "-f", "pipeline/logstash.conf"]
