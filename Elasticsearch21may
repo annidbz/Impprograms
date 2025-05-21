@@ -1,0 +1,23 @@
+FROM debian:bullseye-slim
+
+ENV ES_HOME=/opt/elasticsearch
+
+# Install dependencies
+RUN apt-get update && apt-get install -y curl tar gzip openjdk-17-jdk \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy tar.gz and extract Elasticsearch
+COPY elasticsearch-8.13.0-linux-x86_64.tar.gz /tmp/elasticsearch.tar.gz
+RUN mkdir -p ${ES_HOME} && \
+    tar -xzf /tmp/elasticsearch.tar.gz --strip-components=1 -C ${ES_HOME} && \
+    rm /tmp/elasticsearch.tar.gz
+
+# Optional: Custom config
+COPY elasticsearch.yml ${ES_HOME}/config/elasticsearch.yml
+
+# Set environment variables
+ENV PATH="${ES_HOME}/bin:${PATH}"
+WORKDIR ${ES_HOME}
+EXPOSE 9200 9300
+
+CMD ["elasticsearch"]
