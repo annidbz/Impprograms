@@ -1,0 +1,20 @@
+FROM debian:bullseye-slim
+
+ENV KIBANA_HOME=/opt/kibana
+ENV KIBANA_URL=https://nexus.example.com/repository/kibana/kibana-8.9.1-linux-x86_64.tar.gz
+
+# Install dependencies
+RUN apt-get update && apt-get install -y curl tar gzip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Download and extract Kibana from Nexus
+RUN mkdir -p ${KIBANA_HOME} && \
+    curl -L ${KIBANA_URL} | tar xz --strip-components=1 -C ${KIBANA_HOME}
+
+# Optional: Add custom kibana.yml
+COPY kibana.yml ${KIBANA_HOME}/config/kibana.yml
+
+WORKDIR ${KIBANA_HOME}
+EXPOSE 5601
+
+CMD ["bin/kibana"]
