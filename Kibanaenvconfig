@@ -6,3 +6,58 @@ environment:
   XPACK_REPORTING_ENCRYPTIONKEY: "another_secure_long_key"
   XPACK_ENCRYPTEDSAVEDOBJECTS_VERIFICATIONKEY: "optional_long_key"
   XPACK_INTERACTIVESETUP_ENABLED: "false"
+
+
+
+
+version: "3.8"
+
+services:
+  elasticsearch:
+    build:
+      context: ./elasticsearch
+    image: local/elasticsearch:8.9.1
+    container_name: elasticsearch
+    ports:
+      - "9200:9200"
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+      - path.data=/usr/share/elasticsearch/es-data
+      - xpack.security.enabled=false
+      - xpack.security.http.ssl.enabled=false
+    user: "1000:1000"
+    volumes:
+      - es-data:/usr/share/elasticsearch/es-data
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    networks:
+      - shared-network
+
+  kibana:
+    build:
+      context: ./kibana
+    image: local/kibana:8.9.0
+    container_name: kibana
+    ports:
+      - "5601:5601"
+    user: "1000:1000"
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - XPACK_SECURITY_ENABLED=false
+      - XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY=32_character_secure_key_here
+      - XPACK_REPORTING_ENCRYPTIONKEY=another_32_char_secure_key
+      - XPACK_INTERACTIVESETUP_ENABLED=false
+    depends_on:
+      - elasticsearch
+    networks:
+      - shared-network
+
+volumes:
+  es-data:
+
+networks:
+  shared-network:
+    external: true
