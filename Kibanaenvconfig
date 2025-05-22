@@ -1,0 +1,8 @@
+environment:
+  ...
+  ELASTICSEARCH_HOSTS: "http://elasticsearch:9200"
+  XPACK_SECURITY_ENABLED: "false"
+  XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY: "a_secure_long_key_for_testing"
+  XPACK_REPORTING_ENCRYPTIONKEY: "another_secure_long_key"
+  XPACK_ENCRYPTEDSAVEDOBJECTS_VERIFICATIONKEY: "optional_long_key"
+  XPACK_INTERACTIVESETUP_ENABLED: "false"
