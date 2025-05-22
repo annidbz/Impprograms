@@ -61,3 +61,20 @@ volumes:
 networks:
   shared-network:
     external: true
+
+
+
+
+elasticsearch.hosts: ["http://elasticsearch:9200"]
+xpack.security.enabled: false
+xpack.encryptedSavedObjects.encryptionKey: "32_character_secure_key_here"
+xpack.reporting.encryptionKey: "another_32_char_secure_key"
+xpack.interactiveSetup.enabled: false
+
+services:
+  kibana:
+    ...
+    volumes:
+      - ./kibana.yml:/usr/share/kibana/config/kibana.yml
+    ...
+
