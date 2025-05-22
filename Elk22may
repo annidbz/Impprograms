@@ -1,0 +1,187 @@
+FROM debian:bullseye
+
+# Create non-root user (UID 1000)
+RUN groupadd -g 1000 elastic && useradd -u 1000 -g 1000 elastic
+
+# Install Java
+RUN apt-get update && apt-get install -y openjdk-17-jdk
+
+# Create working directory
+RUN mkdir -p /usr/share/elasticsearch
+
+# Copy the tar.gz file
+COPY elasticsearch-8.12.2-linux-x86_64.tar.gz /tmp/
+
+# Extract and fix permissions
+RUN tar -xzf /tmp/elasticsearch-8.12.2-linux-x86_64.tar.gz -C /usr/share/elasticsearch --strip-components=1 && \
+    chown -R elastic:elastic /usr/share/elasticsearch && \
+    chmod +x /usr/share/elasticsearch/bin/elasticsearch /usr/bin/java
+
+# Set environment
+ENV ES_JAVA_OPTS="-Xms1g -Xmx1g"
+ENV discovery.type=single-node
+
+USER 1000:1000
+WORKDIR /usr/share/elasticsearch
+
+EXPOSE 9200 9300
+CMD ["/usr/share/elasticsearch/bin/elasticsearch"]
+
+
+
+
+
+FROM debian:bullseye
+
+# Create kibana user (UID 1000)
+RUN groupadd -g 1000 kibana && useradd -u 1000 -g 1000 kibana
+
+# Install node dependencies (Kibana needs Node.js, but only if from source; official binaries have it bundled)
+RUN apt-get update && apt-get install -y curl
+
+# Copy the downloaded Kibana tar
+COPY kibana-8.12.2-linux-x86_64.tar.gz /tmp/
+
+# Extract and fix permissions
+RUN mkdir -p /usr/share/kibana && \
+    tar -xzf /tmp/kibana-8.12.2-linux-x86_64.tar.gz -C /usr/share/kibana --strip-components=1 && \
+    chown -R kibana:kibana /usr/share/kibana
+
+USER 1000:1000
+WORKDIR /usr/share/kibana
+
+ENV ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+
+EXPOSE 5601
+
+CMD ["/usr/share/kibana/bin/kibana"]
+
+
+# elasticsearch/Dockerfile
+FROM uib:18
+
+# Install Java and user tools
+RUN dnf install -y java-17-openjdk shadow-utils tar && \
+    dnf clean all
+
+# Create user and group with UID 1000
+RUN groupadd -g 1000 elastic && useradd -u 1000 -g 1000 elastic
+
+# Copy local tar.gz into image
+COPY elasticsearch-8.12.2-linux-x86_64.tar.gz /tmp/elasticsearch.tar.gz
+
+# Extract and set ownership
+RUN mkdir -p /usr/share/elasticsearch && \
+    tar -xzf /tmp/elasticsearch.tar.gz -C /usr/share/elasticsearch --strip-components=1 && \
+    chown -R elastic:elastic /usr/share/elasticsearch
+
+USER 1000:1000
+WORKDIR /usr/share/elasticsearch
+
+ENV ES_JAVA_OPTS="-Xms1g -Xmx1g"
+ENV discovery.type=single-node
+
+EXPOSE 9200 9300
+
+CMD ["/usr/share/elasticsearch/bin/elasticsearch"]
+
+
+
+# kibana/Dockerfile
+FROM uib:18
+
+# Install tools
+RUN dnf install -y curl tar shadow-utils && \
+    dnf clean all
+
+# Create non-root user for Kibana
+RUN groupadd -g 1000 kibana && useradd -u 1000 -g 1000 kibana
+
+# Download from Nexus (replace with your actual Nexus URL)
+RUN curl -L -o /tmp/kibana.tar.gz https://nexus.mycompany.com/repository/releases/kibana-8.12.2-linux-x86_64.tar.gz
+
+# Extract and set permissions
+RUN mkdir -p /usr/share/kibana && \
+    tar -xzf /tmp/kibana.tar.gz -C /usr/share/kibana --strip-components=1 && \
+    chown -R kibana:kibana /usr/share/kibana
+
+USER 1000:1000
+WORKDIR /usr/share/kibana
+
+ENV ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+
+EXPOSE 5601
+
+CMD ["/usr/share/kibana/bin/kibana"]
+
+
+
+version: "3.8"
+
+services:
+  elasticsearch:
+    build:
+      context: ./elasticsearch
+    image: local/elasticsearch:8.12.2
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+    ports:
+      - "9200:9200"
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    mem_limit: 2g
+    user: "1000:1000"
+    networks:
+      - shared-network
+
+  kibana:
+    build:
+      context: ./kibana
+    image: local/kibana:8.12.2
+    container_name: kibana
+    ports:
+      - "5601:5601"
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    depends_on:
+      - elasticsearch
+    volumes:
+      - kibdata:/usr/share/kibana/data
+    user: "1000:1000"
+    networks:
+      - shared-network
+
+  logstash:
+    image: local/logstash:8.12.2
+    container_name: logstash
+    volumes:
+      - ./logstash/pipeline:/usr/share/logstash/pipeline
+    environment:
+      - LOGSTASH_CONFIG_STRING=input { kafka { bootstrap_servers => "kafka:9092" topic => "my-topic" } } output { stdout {} }
+    ports:
+      - "5044:5044"
+    depends_on:
+      - elasticsearch
+    networks:
+      - shared-network
+
+volumes:
+  esdata:
+  kibdata:
+
+networks:
+  shared-network:
+    external: true
+
+
+
+
+
+
+
