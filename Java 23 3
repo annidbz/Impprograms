@@ -1,0 +1,29 @@
+FROM registry.access.redhat.com/ubi8/ubi
+
+# Install Java
+RUN yum install -y java-1.8.0-openjdk-devel && \
+    yum clean all
+
+ENV JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk
+ENV PATH=$JAVA_HOME/bin:$PATH
+
+# Kafka install directory
+ENV CONFLUENT_HOME=/opt/confluent
+WORKDIR /opt
+
+# Copy Kafka tar.gz into the image
+COPY confluent-5.4.3-2.12.tar.gz .
+
+# Extract and move it to /opt/confluent
+RUN tar -xzf confluent-5.4.3-2.12.tar.gz && \
+    mv confluent* $CONFLUENT_HOME && \
+    rm confluent-5.4.3-2.12.tar.gz && \
+    chmod +x $CONFLUENT_HOME/bin/*.sh
+
+ENV PATH="$CONFLUENT_HOME/bin:$PATH"
+
+EXPOSE 2181 9092
+
+CMD sh -c "$CONFLUENT_HOME/bin/zookeeper-server-start $CONFLUENT_HOME/etc/kafka/zookeeper.properties & \
+           sleep 5 && \
+           $CONFLUENT_HOME/bin/kafka-server-start $CONFLUENT_HOME/etc/kafka/server.properties"
