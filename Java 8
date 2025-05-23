@@ -1,0 +1,20 @@
+CMD ["/bin/bash", "-c", "\
+  /opt/kafka/bin/zookeeper-server-start.sh /opt/zookeeper.properties & \
+  sleep 5 && \
+  echo 'zookeeper.connect=localhost:2181' >> /opt/kafka/config/server.properties && \
+  echo 'listeners=PLAINTEXT://0.0.0.0:9092' >> /opt/kafka/config/server.properties && \
+  echo 'advertised.listeners=PLAINTEXT://kafka:9092' >> /opt/kafka/config/server.properties && \
+  echo 'listener.security.protocol.map=PLAINTEXT:PLAINTEXT' >> /opt/kafka/config/server.properties && \
+  echo 'inter.broker.listener.name=PLAINTEXT' >> /opt/kafka/config/server.properties && \
+  echo 'sasl.enabled.mechanisms=' >> /opt/kafka/config/server.properties && \
+  echo 'sasl.mechanism.inter.broker.protocol=PLAINTEXT' >> /opt/kafka/config/server.properties && \
+  echo 'security.inter.broker.protocol=PLAINTEXT' >> /opt/kafka/config/server.properties && \
+  exec /opt/kafka/bin/kafka-server-start.sh /opt/kafka/config/server.properties"]
+
+  kafka:
+    image: confluentinc/cp-kafka:5.4.3
+    volumes:
+      - ./config/server.properties:/etc/kafka/server.properties
+    environment:
+      KAFKA_HEAP_OPTS: "-Xmx512M -Xms512M"
+    command: ["sh", "-c", "/etc/confluent/docker/run"]
