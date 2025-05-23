@@ -36,5 +36,16 @@ output {
     hosts => ["http://elasticsearch:9200"]
     index => "kafka-logs-%{+YYYY.MM.dd}"
   }
-  stdout { codec => rubydebug }
+  stdout { codec => CMD ["/bin/bash", "-c", "\
+  export PATH=$JAVA_HOME/bin:$PATH && \
+  $CONFLUENT_HOME/bin/zookeeper-server-start /opt/zookeeper.properties & \
+  sleep 5 && \
+  sed -i 's|zookeeper.connect=.*|zookeeper.connect=localhost:2181|' $CONFLUENT_HOME/etc/kafka/server.properties && \
+  sed -i '/^#listeners=/a listeners=PLAINTEXT://0.0.0.0:9092' $CONFLUENT_HOME/etc/kafka/server.properties && \
+  sed -i '/^#advertised.listeners=/a advertised.listeners=PLAINTEXT://localhost:9092' $CONFLUENT_HOME/etc/kafka/server.properties && \
+  exec $CONFLUENT_HOME/bin/kafka-server-start $CONFLUENT_HOME/etc/kafka/server.properties"]
+
+
+
+
 }
