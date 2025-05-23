@@ -1,0 +1,30 @@
+environment:
+  KAFKA_LISTENERS: PLAINTEXT_HOST://0.0.0.0:19092,PLAINTEXT_DOCKER://0.0.0.0:29092
+  KAFKA_ADVERTISED_LISTENERS: PLAINTEXT_HOST://host.docker.internal:19092,PLAINTEXT_DOCKER://kafka-broker-1:29092
+  KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT_HOST:PLAINTEXT,PLAINTEXT_DOCKER:PLAINTEXT
+  KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_DOCKER
+
+
+ports:
+  - "19092:19092"  # For Windows
+  - "29092:29092"  # For Docker containers like Logstash
+
+
+input {
+  kafka {
+    bootstrap_servers => "kafka-broker-1:29092"
+    topics => ["your-topic"]
+    group_id => "logstash-group"
+  }
+}
+
+
+
+kafka-topics.sh --create \
+  --bootstrap-server host.docker.internal:19092 \
+  --replication-factor 1 \
+  --partitions 1 \
+  --topic your-topic
+
+
+
