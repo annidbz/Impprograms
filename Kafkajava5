@@ -1,0 +1,36 @@
+FROM registry.access.redhat.com/ubi8/ubi
+
+# Install Java 8
+RUN yum install -y java-1.8.0-openjdk-devel && \
+    yum clean all
+
+ENV JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk
+ENV PATH=$JAVA_HOME/bin:$PATH
+
+# Set Kafka install directory
+ENV CONFLUENT_HOME=/opt/confluent
+WORKDIR /opt
+
+# Copy Confluent Platform tar.gz
+COPY confluent-5.4.3-2.12.tar.gz .
+
+# Extract Kafka and setup paths
+RUN tar -xzf confluent-5.4.3-2.12.tar.gz && \
+    mv confluent-5.4.3 $CONFLUENT_HOME && \
+    rm confluent-5.4.3-2.12.tar.gz && \
+    chmod +x $CONFLUENT_HOME/bin/*
+
+# Write Zookeeper config inline
+RUN echo "dataDir=/tmp/zookeeper\n\
+clientPort=2181\n\
+maxClientCnxns=0\n\
+admin.enableServer=false" > /opt/zookeeper.properties
+
+# Expose Zookeeper and Kafka ports
+EXPOSE 2181 9092
+
+# Start Zookeeper and Kafka using inline script (exec form)
+CMD ["/bin/bash", "-c", "\
+  $CONFLUENT_HOME/bin/zookeeper-server-start /opt/zookeeper.properties & \
+  sleep 5 && \
+  exec $CONFLUENT_HOME/bin/kafka-server-start $CONFLUENT_HOME/etc/kafka/server.properties"]
