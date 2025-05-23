@@ -1,0 +1,36 @@
+# Base image
+FROM centos:7
+
+# Install JDK 8
+RUN yum install -y java-1.8.0-openjdk-devel && \
+    yum clean all
+
+# Set environment variables
+ENV JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk
+ENV CONFLUENT_HOME=/opt/confluent
+ENV PATH=$JAVA_HOME/bin:$PATH
+
+# Create working directory
+WORKDIR /opt
+
+# Copy local Kafka tar.gz into image (make sure it exists in build context)
+COPY confluent-5.4.3-2.12.tar.gz .
+
+# Extract Kafka and move to desired location
+RUN tar -xzf confluent-5.4.3-2.12.tar.gz && \
+    mv confluent-5.4.3 $CONFLUENT_HOME && \
+    rm confluent-5.4.3-2.12.tar.gz && \
+    chmod +x $CONFLUENT_HOME/bin/*.sh
+
+# Copy your custom config files into Kafka config folder
+COPY server.properties $CONFLUENT_HOME/config/server.properties
+COPY zookeeper.properties $CONFLUENT_HOME/config/zookeeper.properties
+
+# Expose ports
+EXPOSE 2181 9092 19092
+
+# Start Zookeeper and Kafka
+CMD ["/bin/bash", "-c", "\
+    $CONFLUENT_HOME/bin/zookeeper-server-start.sh $CONFLUENT_HOME/config/zookeeper.properties & \
+    sleep 5 && \
+    exec $CONFLUENT_HOME/bin/kafka-server-start.sh $CONFLUENT_HOME/config/server.properties"]
