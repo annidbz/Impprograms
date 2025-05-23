@@ -1,0 +1,29 @@
+
+FROM registry.access.redhat.com/ubi8/ubi
+
+# Install Java
+RUN yum install -y java-1.8.0-openjdk-devel && \
+    yum clean all
+
+ENV JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk
+ENV PATH=$JAVA_HOME/bin:$PATH
+
+# Set Kafka directory
+ENV CONFLUENT_HOME=/opt/confluent
+
+WORKDIR /opt
+
+# Copy local tar.gz Kafka package into the image
+COPY confluent-5.4.3-2.12.tar.gz .
+
+# Extract and prepare Kafka
+RUN tar -xzf confluent-5.4.3-2.12.tar.gz && \
+    mv confluent-5.4.3 $CONFLUENT_HOME && \
+    rm confluent-5.4.3-2.12.tar.gz && \
+    chmod +x $CONFLUENT_HOME/bin/*.sh
+
+ENV PATH="$CONFLUENT_HOME/bin:$PATH"
+
+EXPOSE 9092 2181
+
+CMD ["sh", "-c", "$CONFLUENT_HOME/bin/kafka-server-start $CONFLUENT_HOME/etc/kafka/server.properties"]
