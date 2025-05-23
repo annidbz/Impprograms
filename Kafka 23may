@@ -1,0 +1,55 @@
+curl -O http://packages.confluent.io/archive/5.4/confluent-5.4.3-2.12.FROM openjdk:8-jdk-alpine
+
+LABEL maintainer="your_email@example.com"
+LABEL version="5.4.3"
+
+ENV CONFLUENT_VERSION=5.4.3
+ENV SCALA_VERSION=2.12
+ENV CONFLUENT_HOME=/opt/confluent
+
+WORKDIR /opt
+
+# Copy the local Confluent Platform archive into the image
+COPY confluent-5.4.3-2.12.tar.gz .
+
+# Extract the archive and clean up
+RUN tar -xzf confluent-5.4.3-2.12.tar.gz && \
+    mv confluent-5.4.3 /opt/confluent && \
+    rm confluent-5.4.3-2.12.tar.gz
+
+# Set environment variables
+ENV PATH="${CONFLUENT_HOME}/bin:${PATH}"
+
+# Expose Kafka and Zookeeper ports
+EXPOSE 9092 2181
+
+# Start Zookeeper and Kafka
+CMD ["sh", "-c", "${CONFLUENT_HOME}/bin/zookeeper-server-start ${CONFLUENT_HOME}/etc/kafka/zookeeper.properties & ${CONFLUENT_HOME}/bin/kafka-server-start ${CONFLUENT_HOME}/etc/kafka/server.properties"]
+
+FROM openjdk:8-jdk-alpine
+
+LABEL maintainer="your_email@example.com"
+LABEL version="5.4.3"
+
+ENV CONFLUENT_VERSION=5.4.3
+ENV SCALA_VERSION=2.12
+ENV CONFLUENT_HOME=/opt/confluent
+
+WORKDIR /opt
+
+# Copy the local Confluent Platform archive into the image
+COPY confluent-5.4.3-2.12.tar.gz .
+
+# Extract the archive and clean up
+RUN tar -xzf confluent-5.4.3-2.12.tar.gz && \
+    mv confluent-5.4.3 /opt/confluent && \
+    rm confluent-5.4.3-2.12.tar.gz
+
+# Set environment variables
+ENV PATH="${CONFLUENT_HOME}/bin:${PATH}"
+
+# Expose Kafka and Zookeeper ports
+EXPOSE 9092 2181
+
+# Start Zookeeper and Kafka
+CMD ["sh", "-c", "${CONFLUENT_HOME}/bin/zookeeper-server-start ${CONFLUENT_HOME}/etc/kafka/zookeeper.properties & ${CONFLUENT_HOME}/bin/kafka-server-start ${CONFLUENT_HOME}/etc/kafka/server.properties"]
