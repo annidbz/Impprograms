@@ -24,3 +24,32 @@ docker exec -it <kafka-container-id> netstat -tulnp | grep 9092
       - "19092:19092"
     networks:
       - shared-network
+
+
+
+services:
+  zookeeper:
+    image: wurstmeister/zookeeper:3.4
+    ports:
+      - "2181:2181"
+    networks:
+      - shared-network
+
+  kafka:
+    image: wurstmeister/kafka:2.12-2.4.1
+    ports:
+      - "19092:19092"
+    environment:
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:19092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:19092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_BROKER_ID: 1
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    networks:
+      - shared-network
+
+networks:
+  shared-network:
+    external: true
