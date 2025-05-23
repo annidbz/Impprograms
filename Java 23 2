@@ -1,0 +1,19 @@
+FROM openjdk:8-jdk-alpine
+
+ENV CONFLUENT_VERSION=5.4.3
+ENV SCALA_VERSION=2.12
+ENV CONFLUENT_HOME=/opt/confluent
+
+WORKDIR /opt
+
+COPY confluent-5.4.3-2.12.tar.gz .
+
+RUN tar -xzf confluent-5.4.3-2.12.tar.gz && \
+    mv confluent-5.4.3 /opt/confluent && \
+    rm confluent-5.4.3-2.12.tar.gz
+
+ENV PATH="${CONFLUENT_HOME}/bin:${PATH}"
+
+EXPOSE 9092 2181
+
+CMD ["sh", "-c", "${CONFLUENT_HOME}/bin/zookeeper-server-start ${CONFLUENT_HOME}/etc/kafka/zookeeper.properties & ${CONFLUENT_HOME}/bin/kafka-server-start ${CONFLUENT_HOME}/etc/kafka/server.properties"]
