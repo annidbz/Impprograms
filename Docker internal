@@ -28,3 +28,71 @@ kafka-topics.sh --create \
 
 
 
+
+
+version: '3.8'
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:5.4.3
+    hostname: zookeeper
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+    networks:
+      - shared-network
+
+  kafka:
+    image: confluentinc/cp-kafka:5.4.3
+    hostname: kafka-broker-1
+    container_name: kafka-broker-1
+    ports:
+      - "19092:19092"  # For host (Windows) access
+      - "29092:29092"  # For Docker internal access
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_BROKER_ID: 1
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+      # Dual listener setup
+      KAFKA_LISTENERS: PLAINTEXT_HOST://0.0.0.0:19092,PLAINTEXT_DOCKER://0.0.0.0:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT_HOST://host.docker.internal:19092,PLAINTEXT_DOCKER://kafka-broker-1:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT_HOST:PLAINTEXT,PLAINTEXT_DOCKER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_DOCKER
+
+    depends_on:
+      - zookeeper
+    networks:
+      - shared-network
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:7.17.0
+    container_name: logstash
+    volumes:
+      - ./logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+    networks:
+      - shared-network
+    depends_on:
+      - kafka
+
+networks:
+  shared-network:
+
+
+
+
+    name: shared-input {
+  kafka {
+    bootstrap_servers => "kafka-broker-1:29092"
+    topics => ["your-topic"]
+    group_id => "logstash-group"
+    codec => "plain"
+  }
+}
+
+output {
+  stdout {
+    codec => rubydebug
+  }
+}
+
