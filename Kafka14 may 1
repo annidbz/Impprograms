@@ -1,0 +1,66 @@
+FROM registry.access.redhat.com/ubi8/FROM registry.access.redhat.com/ubi8/ubi
+
+# Install required packages: bash, Java 8, tar
+RUN yum install -y \
+    bash \
+    java-1.8.0-openjdk-devel \
+    tar && \
+    yum clean all
+
+# Set environment variables
+ENV JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk
+ENV CONFLUENT_HOME=/opt/confluent
+ENV PATH=$CONFLUENT_HOME/bin:$JAVA_HOME/bin:$PATH
+
+WORKDIR /opt
+
+# Copy Kafka tar.gz
+COPY confluent-5.4.3-2.12.tar.gz .
+
+# Extract Kafka, move to target location, and make scripts executable
+RUN tar -xzf confluent-5.4.3-2.12.tar.gz && \
+    mv confluent-5.4.3 $CONFLUENT_HOME && \
+    rm confluent-5.4.3-2.12.tar.gz && \
+    chmod +x $CONFLUENT_HOME/bin/*
+
+# Copy configuration files (make sure these exist in the build context)
+COPY server.properties $CONFLUENT_HOME/etc/kafka/server.properties
+COPY zookeeper.properties $CONFLUENT_HOME/etc/kafka/zookeeper.properties
+
+# Expose ports for Kafka and Zookeeper
+EXPOSE 2181 9092
+
+# Start both Zookeeper and Kafka
+CMD [ "sh", "-c", "$CONFLUENT_HOME/bin/zookeeper-server-start $CONFLUENT_HOME/etc/kafka/zookeeper.properties & sleep 5 && $CONFLUENT_HOME/bin/kafka-server-start $CONFLUENT_HOME/etc/kafka/server.properties" ]
+# Install required packages: bash, Java 8, tar
+RUN yum install -y \
+    bash \
+    java-1.8.0-openjdk-devel \
+    tar && \
+    yum clean all
+
+# Set environment variables
+ENV JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk
+ENV CONFLUENT_HOME=/opt/confluent
+ENV PATH=$CONFLUENT_HOME/bin:$JAVA_HOME/bin:$PATH
+
+WORKDIR /opt
+
+# Copy Kafka tar.gz
+COPY confluent-5.4.3-2.12.tar.gz .
+
+# Extract Kafka, move to target location, and make scripts executable
+RUN tar -xzf confluent-5.4.3-2.12.tar.gz && \
+    mv confluent-5.4.3 $CONFLUENT_HOME && \
+    rm confluent-5.4.3-2.12.tar.gz && \
+    chmod +x $CONFLUENT_HOME/bin/*
+
+# Copy configuration files (make sure these exist in the build context)
+COPY server.properties $CONFLUENT_HOME/etc/kafka/server.properties
+COPY zookeeper.properties $CONFLUENT_HOME/etc/kafka/zookeeper.properties
+
+# Expose ports for Kafka and Zookeeper
+EXPOSE 2181 9092
+
+# Start both Zookeeper and Kafka
+CMD [ "sh", "-c", "$CONFLUENT_HOME/bin/zookeeper-server-start $CONFLUENT_HOME/etc/kafka/zookeeper.properties & sleep 5 && $CONFLUENT_HOME/bin/kafka-server-start $CONFLUENT_HOME/etc/kafka/server.properties" ]
