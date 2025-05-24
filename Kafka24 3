@@ -1,0 +1,15 @@
+services:
+  kafka:
+    image: your-kafka-image
+    volumes:
+      - ./start-kafka.sh:/opt/start-kafka.sh
+    command: ["/bin/sh", "-c", "chmod +x /opt/start-kafka.sh && /opt/start-kafka.sh"]
+
+
+#!/bin/sh
+/opt/confluent/bin/zookeeper-server-start /opt/confluent/etc/kafka/zookeeper.properties &
+sleep 5
+/opt/confluent/bin/kafka-server-start /opt/confluent/etc/kafka/server.properties
+
+
+dos2unix start-kafka.sh
